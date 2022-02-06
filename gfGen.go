@@ -24,6 +24,9 @@
 [v1.01] Feb. 6. 2022 (JINSOO PARK, isink.park@gmail.com, https://github.com/parksworks/gfGen)
  - Modify accessablility to use this package
 
+[v1.02] Feb. 6. 2022 (JINSOO PARK, isink.park@gmail.com, https://github.com/parksworks/gfGen)
+ - Add a method GfGetAddTable(), returns addTable [][]int by value
+
 ********************************************************************************************/
 
 package gfGen
@@ -264,18 +267,31 @@ func (gf *GaloisField) GfPrintAddTable() {
 	}
 }
 
-/* [Example] See the following example
-
-func main() {
-	var testGf galoisField
-	priPoly := &gfPoly{0: 1, 1: 1, 3: 1}	// 1x^0 + 1x^1 + 1x^3
-
-	gfErr := testGf.gfConstructGaloisField(3, priPoly)	// GF(2^3) with primitive polynomial (1x^0 + 1x^1 + 1x^3)
-	if gfErr != nil{
-		fmt.Printf("gfErr: %v\n", gfErr)
-	} else {
-		testGf.gfPrintAddTable()
-	}
+// return pointer of addTable
+func (gf *GaloisField) GfGetAddTable() [][]int {
+	return gf.addTable
 }
 
+/* [Example] See the following example */
+/*
+func main() {
+	var testGf GaloisField
+	priPoly := &GfPoly{0: 1, 1: 1, 3: 1} // 1x^0 + 1x^1 + 1x^3
+
+	gfErr := testGf.GfConstructGaloisField(3, priPoly) // GF(2^3) with primitive polynomial (1x^0 + 1x^1 + 1x^3)
+	if gfErr != nil {
+		fmt.Printf("gfErr: %v\n", gfErr)
+	} else {
+		testGf.GfPrintAddTable()
+	}
+
+	resultAddTable := testGf.GfGetAddTable()
+	for i := uint(0); i < testGf.fieldSize-1; i++ {
+		fmt.Printf("%d\t|", i)
+		for j := uint(0); j < testGf.fieldSize-1; j++ {
+			fmt.Printf("%d\t", resultAddTable[i][j])
+		}
+		fmt.Println("")
+	}
+}
 */
