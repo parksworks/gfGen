@@ -20,6 +20,10 @@
 		-> "addTable[i][j] = k" represents as the following
 			=> a^i + a^j = a^k over GF(2^m) with primitive polynomial "priPoly", where a is a primitive element
 			=> if i == j, then a^i + a^j = 0, and it is represented by addTable[i][j] = -1
+
+[v1.01] Feb. 6. 2022 (JINSOO PARK, isink.park@gmail.com, https://github.com/parksworks/gfGen)
+ - Modify accessablility to use this package
+
 ********************************************************************************************/
 
 package gfGen
@@ -29,20 +33,20 @@ import (
 	"math"
 )
 
-type gfPoly map[uint]uint // Represents polynomial over Galois field (key: degree, value: exponent of primitive element representing the coefficient of the degree(key))
+type GfPoly map[uint]uint // Represents polynomial over Galois field (key: degree, value: exponent of primitive element representing the coefficient of the degree(key))
 // [v1.0]	This package consider only for binary coefficient, so the values should be 0 or 1
 //		 	For the extension to non-binary coefficient, the values have uint type
-type galoisField struct {
+type GaloisField struct {
 	// This struct works only for GF(2^m)
 	// How to use this field: put m and priPoly before use the methods in this struct
 	m       uint    // GF(2^m)
-	priPoly *gfPoly // primitive polynomial
+	priPoly *GfPoly // primitive polynomial
 
 	fieldSize uint    // 2^m
 	addTable  [][]int // addition table (addTable[exp1][exp2] = exponent of coefficient) (!!CAUTION : "-1" represents "zero coefficient")
 }
 
-func (gf *galoisField) gfConstructGaloisField(inputExponent uint, inputPriPoly *gfPoly) error {
+func (gf *GaloisField) GfConstructGaloisField(inputExponent uint, inputPriPoly *GfPoly) error {
 	var gfErr error
 	// Construct Galois Field of GF(2^m) with the given primitive polynomial
 	gf.m = inputExponent
@@ -55,9 +59,9 @@ func (gf *galoisField) gfConstructGaloisField(inputExponent uint, inputPriPoly *
 
 	if gfErr == nil {
 		// construct exponent <-> binary polynomial expression table
-		exp2BinPoly := make([]gfPoly, gf.fieldSize-1)
+		exp2BinPoly := make([]GfPoly, gf.fieldSize-1)
 		for exp := range exp2BinPoly {
-			exp2BinPoly[exp] = make(gfPoly)
+			exp2BinPoly[exp] = make(GfPoly)
 		}
 		gf.gfConstructExp2BinPoly(&exp2BinPoly)
 
@@ -75,8 +79,8 @@ func (gf *galoisField) gfConstructGaloisField(inputExponent uint, inputPriPoly *
 }
 
 // multiply binary coefficient polynomials p1, p2
-func (gf *galoisField) gfBinaryPolyMulti(p1, p2 *gfPoly) *gfPoly {
-	returnPoly := make(gfPoly)
+func (gf *GaloisField) gfBinaryPolyMulti(p1, p2 *GfPoly) *GfPoly {
+	returnPoly := make(GfPoly)
 	// p1 * p2 with binary coefficients
 	for deg1, coef1 := range *p1 {
 		for deg2, coef2 := range *p2 {
@@ -93,8 +97,8 @@ func (gf *galoisField) gfBinaryPolyMulti(p1, p2 *gfPoly) *gfPoly {
 }
 
 // add binary coefficient polynomials p1, p2
-func (gf *galoisField) gfBinaryPolyAdd(p1, p2 *gfPoly) *gfPoly {
-	returnPoly := make(gfPoly)
+func (gf *GaloisField) gfBinaryPolyAdd(p1, p2 *GfPoly) *GfPoly {
+	returnPoly := make(GfPoly)
 	// p1 + p2 with binary coefficients
 	for deg := uint(0); deg <= gf.m; deg++ {
 		_, existDegP1 := (*p1)[deg]
@@ -116,11 +120,11 @@ func (gf *galoisField) gfBinaryPolyAdd(p1, p2 *gfPoly) *gfPoly {
 }
 
 // modulo binary coefficient polynomial p1 % p2
-func (gf *galoisField) gfBinaryPolyMod(p1, p2 *gfPoly) *gfPoly {
-	degDiffMultiplier := make(gfPoly) // multiplier to get divisor
+func (gf *GaloisField) gfBinaryPolyMod(p1, p2 *GfPoly) *GfPoly {
+	degDiffMultiplier := make(GfPoly) // multiplier to get divisor
 
 	// copy from p1 to returnPoly
-	returnPoly := make(gfPoly)
+	returnPoly := make(GfPoly)
 	for deg, coef := range *p1 {
 		returnPoly[deg] = coef
 	}
@@ -154,20 +158,20 @@ func (gf *galoisField) gfBinaryPolyMod(p1, p2 *gfPoly) *gfPoly {
 }
 
 // construct exp2BinPoly table
-func (gf *galoisField) gfConstructExp2BinPoly(exp2BinPoly *([]gfPoly)) {
+func (gf *GaloisField) gfConstructExp2BinPoly(exp2BinPoly *([]GfPoly)) {
 	// trivial cases
 	for exp := uint(0); exp < gf.m; exp++ {
 		(*exp2BinPoly)[exp][exp] = 1
 	}
 	// the other cases
 	for exp := gf.m; exp < gf.fieldSize-1; exp++ {
-		tempPoly := gf.gfBinaryPolyMulti(&(*exp2BinPoly)[exp-1], &(gfPoly{1: 1})) // multiply (x) to polynomial of tje previous exponent
+		tempPoly := gf.gfBinaryPolyMulti(&(*exp2BinPoly)[exp-1], &(GfPoly{1: 1})) // multiply (x) to polynomial of tje previous exponent
 		(*exp2BinPoly)[exp] = *gf.gfBinaryPolyMod(tempPoly, gf.priPoly)
 	}
 }
 
 // constcut addTable table
-func (gf *galoisField) gfConstructAddTable(exp2BinPoly *([]gfPoly)) error {
+func (gf *GaloisField) gfConstructAddTable(exp2BinPoly *([]GfPoly)) error {
 	for exp1 := uint(0); exp1 < gf.fieldSize-1; exp1++ {
 		for exp2 := uint(0); exp2 < gf.fieldSize-1; exp2++ {
 			if exp1 == exp2 {
@@ -188,7 +192,7 @@ func (gf *galoisField) gfConstructAddTable(exp2BinPoly *([]gfPoly)) error {
 }
 
 // return exp corresponding to the input polynomial
-func (gf *galoisField) gfFindExpByPoly(poly *gfPoly, exp2BinPoly *([]gfPoly)) (uint, error) {
+func (gf *GaloisField) gfFindExpByPoly(poly *GfPoly, exp2BinPoly *([]GfPoly)) (uint, error) {
 	for exp := uint(0); exp < gf.fieldSize-1; exp++ { // for each polynomial candidate
 		flag := true
 		for deg := uint(0); deg <= gf.m; deg++ { // is poly the same as the candidate polynomial?
@@ -207,7 +211,7 @@ func (gf *galoisField) gfFindExpByPoly(poly *gfPoly, exp2BinPoly *([]gfPoly)) (u
 }
 
 // return max degree of a given polynomial
-func (gf *galoisField) gfFindMaxDeg(poly *gfPoly) uint {
+func (gf *GaloisField) gfFindMaxDeg(poly *GfPoly) uint {
 	maxDeg := uint(0)
 	for deg, _ := range *poly {
 		if deg > maxDeg {
@@ -218,7 +222,7 @@ func (gf *galoisField) gfFindMaxDeg(poly *gfPoly) uint {
 }
 
 // return base^exp
-func (gf galoisField) intPow(base uint, exp uint) (uint, error) {
+func (gf GaloisField) intPow(base uint, exp uint) (uint, error) {
 	if base == 0 {
 		return 0, fmt.Errorf("[galoisField] base of intPow(base uint, exp uint) should not be 0!")
 	}
@@ -235,7 +239,7 @@ func (gf galoisField) intPow(base uint, exp uint) (uint, error) {
 }
 
 // print addTable
-func (gf *galoisField) gfPrintAddTable() {
+func (gf *GaloisField) GfPrintAddTable() {
 	if gf.addTable[0][0] == 0 { // not yet calculated
 		fmt.Println("[galoisField] Please use gfConstructGaloisField() method first!")
 	} else {
