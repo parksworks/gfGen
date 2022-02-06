@@ -27,6 +27,10 @@
 [v1.02] Feb. 6. 2022 (JINSOO PARK, isink.park@gmail.com, https://github.com/parksworks/gfGen)
  - Add a method GfGetAddTable(), returns addTable [][]int by value
 
+ [v1.03] Feb. 6. 2022 (JINSOO PARK, isink.park@gmail.com, https://github.com/parksworks/gfGen)
+ - Delete GfGetAddTable()
+ - Add GfAdditionOfTwoExponents() method
+
 ********************************************************************************************/
 
 package gfGen
@@ -268,8 +272,8 @@ func (gf *GaloisField) GfPrintAddTable() {
 }
 
 // return pointer of addTable
-func (gf *GaloisField) GfGetAddTable() [][]int {
-	return gf.addTable
+func (gf *GaloisField) GfAdditionOfTwoExponents(exp1, exp2 uint) int {
+	return gf.addTable[exp1][exp2]
 }
 
 /* [Example] See the following example */
@@ -285,11 +289,10 @@ func main() {
 		testGf.GfPrintAddTable()
 	}
 
-	resultAddTable := testGf.GfGetAddTable()
 	for i := uint(0); i < testGf.fieldSize-1; i++ {
 		fmt.Printf("%d\t|", i)
 		for j := uint(0); j < testGf.fieldSize-1; j++ {
-			fmt.Printf("%d\t", resultAddTable[i][j])
+			fmt.Printf("%d\t", testGf.GfAdditionOfTwoExponents(i, j))
 		}
 		fmt.Println("")
 	}
