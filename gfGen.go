@@ -276,6 +276,11 @@ func (gf *GaloisField) GfAdditionOfTwoExponents(exp1, exp2 uint) int {
 	return gf.addTable[exp1][exp2]
 }
 
+// return field size
+func (gf *GaloisField) GfGetFieldSize() uint {
+	return gf.fieldSize
+}
+
 /* [Example] See the following example */
 /*
 func main() {
