@@ -17,7 +17,7 @@
  - RESULT
 	(1) addTable [][]int
 		-> it is a (2^m)-1 square 2-D slice
-		-> "addTable[i][j] = k" represents as the following
+		-> "addTable[i][j ] = k" represents as the following
 			=> a^i + a^j = a^k over GF(2^m) with primitive polynomial "priPoly", where a is a primitive element
 			=> if i == j, then a^i + a^j = 0, and it is represented by addTable[i][j] = -1
 
@@ -30,6 +30,15 @@
  [v1.03] Feb. 6. 2022 (JINSOO PARK, isink.park@gmail.com, https://github.com/parksworks/gfGen)
  - Delete GfGetAddTable()
  - Add GfAdditionOfTwoExponents() method
+
+ [v1.04] Feb. 9. 2022 (JINSOO PARK, isink.park@gmail.com, https://github.com/parksworks/gfGen)
+ - Add GfGetFieldSize() method
+
+ [v1.05] Aug. 28. 2022 (JINSOO PARK, isink.park@gmail.com, https://github.com/parksworks/gfGen)
+ - Add GfPolyMod() method
+ - Add GfPolyMulti() method
+ - Add GfPolyAdd() method
+ - Add GfPrintPolynomial() method
 
 ********************************************************************************************/
 
@@ -103,6 +112,27 @@ func (gf *GaloisField) gfBinaryPolyMulti(p1, p2 *GfPoly) *GfPoly {
 	return &returnPoly
 }
 
+// multiply non-binary polynomials p1, p2 over GF(gf.fieldSize) (coefficients have a^coef form)
+func (gf *GaloisField) GfPolyMulti(p1, p2 *GfPoly) *GfPoly {
+	returnPoly := make(GfPoly)
+	// p1 * p2 with non-binary coefficients
+	for deg1, coef1 := range *p1 {
+		for deg2, coef2 := range *p2 {
+			if coefOfReturnPoly, exists := returnPoly[deg1+deg2]; exists {
+				tempCoef := gf.GfAdditionOfTwoExponents(coefOfReturnPoly, coef1+coef2)
+				if tempCoef >= 0 { // non-zero coefficient
+					returnPoly[deg1+deg2] = uint(tempCoef)
+				} else { // zero-coefficient
+					delete(returnPoly, deg1+deg2)
+				}
+			} else {
+				returnPoly[deg1+deg2] = (coef1 + coef2) % (gf.fieldSize - 1)
+			}
+		}
+	}
+	return &returnPoly
+}
+
 // add binary coefficient polynomials p1, p2
 func (gf *GaloisField) gfBinaryPolyAdd(p1, p2 *GfPoly) *GfPoly {
 	returnPoly := make(GfPoly)
@@ -123,6 +153,29 @@ func (gf *GaloisField) gfBinaryPolyAdd(p1, p2 *GfPoly) *GfPoly {
 			delete(returnPoly, deg)
 		}
 	}
+	return &returnPoly
+}
+
+// add non-binary coefficient polynomials p1, p2 over GF(gf.fieldSize) (coefficients have a^coef form)
+func (gf *GaloisField) GfPolyAdd(p1, p2 *GfPoly) *GfPoly {
+	returnPoly := make(GfPoly)
+	// p1 + p2 with non-binary coefficients
+	for deg := uint(0); deg <= gf.m; deg++ {
+		coef1, existDegP1 := (*p1)[deg]
+		coef2, existDegP2 := (*p2)[deg]
+
+		if existDegP1 == true && existDegP2 == true { // added term
+			tempCoef := gf.GfAdditionOfTwoExponents(coef1, coef2)
+			if tempCoef >= 0 {
+				returnPoly[deg] = uint(tempCoef) // put coefficient
+			} // tempCoef == -1 -> zero coefficient!
+		} else if existDegP1 == true && existDegP2 == false {
+			returnPoly[deg] = coef1
+		} else if existDegP1 == false && existDegP2 == true {
+			returnPoly[deg] = coef2
+		} // (existDegP1 == false && existDegP2 == false) -> zero coefficient!
+	}
+
 	return &returnPoly
 }
 
@@ -155,6 +208,44 @@ func (gf *GaloisField) gfBinaryPolyMod(p1, p2 *GfPoly) *GfPoly {
 
 		// returnPoly - tempDivisorPoly
 		tempSubtResult := gf.gfBinaryPolyAdd(&returnPoly, tempDivisorPoly)
+		for k := range returnPoly {
+			delete(returnPoly, k)
+		}
+		for k := range *tempSubtResult {
+			returnPoly[k] = (*tempSubtResult)[k]
+		}
+	}
+}
+
+// modulo non-binary coefficient polynomial p1 % p2
+func (gf *GaloisField) GfPolyMod(p1, p2 *GfPoly) *GfPoly {
+	degDiffMultiplier := make(GfPoly) // multiplier to get divisor
+
+	// copy from p1 to returnPoly
+	returnPoly := make(GfPoly)
+	for deg, coef := range *p1 {
+		returnPoly[deg] = coef
+	}
+
+	// polynomial division
+	maxDegP2 := gf.gfFindMaxDeg(p2)
+	for {
+		// check is returnPoly the residual
+		maxDegReturnPoly := gf.gfFindMaxDeg(&returnPoly)
+		if maxDegReturnPoly < maxDegP2 {
+			return &returnPoly
+		}
+
+		// continue to divide
+		degDiff := maxDegReturnPoly - maxDegP2
+		for k := range degDiffMultiplier {
+			delete(degDiffMultiplier, k)
+		} // clear degDiffMultiplier
+		degDiffMultiplier[degDiff] = ((*p2)[maxDegP2] - returnPoly[maxDegReturnPoly] + gf.fieldSize - 1) % (gf.fieldSize - 1) // now, degDiffMultiplier has only a single term a^(p2[maxDegP2] - returnPoly[maxDegReturnPoly])*x^(degDiff)
+		tempDivisorPoly := gf.GfPolyMulti(p2, &degDiffMultiplier)                                                             // get multiplied divisor
+
+		// returnPoly - tempDivisorPoly (subt is the same as add)
+		tempSubtResult := gf.GfPolyAdd(&returnPoly, tempDivisorPoly)
 		for k := range returnPoly {
 			delete(returnPoly, k)
 		}
@@ -273,12 +364,23 @@ func (gf *GaloisField) GfPrintAddTable() {
 
 // return pointer of addTable
 func (gf *GaloisField) GfAdditionOfTwoExponents(exp1, exp2 uint) int {
-	return gf.addTable[exp1][exp2]
+	return gf.addTable[exp1%(gf.fieldSize-1)][exp2%(gf.fieldSize-1)]
 }
 
 // return field size
 func (gf *GaloisField) GfGetFieldSize() uint {
 	return gf.fieldSize
+}
+
+// print a polynomial
+func (gf *GaloisField) GfPrintPolynomial(poly *GfPoly) {
+	for coef, deg := range *poly {
+		fmt.Printf("a^%dx^%d", coef, deg)
+		if deg != gf.gfFindMaxDeg(poly) {
+			fmt.Printf(" + ")
+		}
+	}
+	fmt.Println()
 }
 
 /* [Example] See the following example */
