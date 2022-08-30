@@ -164,16 +164,16 @@ func (gf *GaloisField) GfPolyAdd(p1, p2 *GfPoly) *GfPoly {
 		coef1, existDegP1 := (*p1)[deg]
 		coef2, existDegP2 := (*p2)[deg]
 
-		if existDegP1 == true && existDegP2 == true { // added term
+		if existDegP1 && existDegP2 { // added term
 			tempCoef := gf.GfAdditionOfTwoExponents(coef1, coef2)
 			if tempCoef >= 0 {
 				returnPoly[deg] = uint(tempCoef) // put coefficient
 			} // tempCoef == -1 -> zero coefficient!
-		} else if existDegP1 == true && existDegP2 == false {
+		} else if existDegP1 && !existDegP2 {
 			returnPoly[deg] = coef1
-		} else if existDegP1 == false && existDegP2 == true {
+		} else if !existDegP1 && existDegP2 {
 			returnPoly[deg] = coef2
-		} // (existDegP1 == false && existDegP2 == false) -> zero coefficient!
+		} // (!existDegP1 && !existDegP2) -> zero coefficient!
 	}
 
 	return &returnPoly
@@ -305,7 +305,7 @@ func (gf *GaloisField) gfFindExpByPoly(poly *GfPoly, exp2BinPoly *([]GfPoly)) (u
 			return exp, nil
 		}
 	}
-	return 0, fmt.Errorf("[galoisField] Cannot find the given polynomial in the exp2BinPoly table!")
+	return 0, fmt.Errorf("[galoisField] Cannot find the given polynomial in the exp2BinPoly table")
 }
 
 // return max degree of a given polynomial
@@ -322,7 +322,7 @@ func (gf *GaloisField) gfFindMaxDeg(poly *GfPoly) uint {
 // return base^exp
 func (gf GaloisField) intPow(base uint, exp uint) (uint, error) {
 	if base == 0 {
-		return 0, fmt.Errorf("[galoisField] base of intPow(base uint, exp uint) should not be 0!")
+		return 0, fmt.Errorf("[galoisField] base of intPow(base uint, exp uint) should not be 0")
 	}
 
 	limitChecker := math.MaxUint / base
@@ -330,7 +330,7 @@ func (gf GaloisField) intPow(base uint, exp uint) (uint, error) {
 	for iter := uint(1); iter < exp; iter++ {
 		dummyMult *= base
 		if (dummyMult > limitChecker) && (iter < exp-1) {
-			return 0, fmt.Errorf("[galoisField] Too big field size! Please input smaller integer than %d to ConstructGaloisField()!", gf.m)
+			return 0, fmt.Errorf("[galoisField] Too big field size! Please input smaller integer than %d to ConstructGaloisField()", gf.m)
 		}
 	}
 	return dummyMult, nil
